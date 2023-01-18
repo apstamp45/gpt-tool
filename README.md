@@ -8,10 +8,11 @@ This is a command line tool used to communicate with OpenAI's ChatGPT.
 
 # TODO
 
-- Add method to save chats to file
+- Add method to save chats to file DONE(?)
 - If possible, colorize text to differentiate ChatGPT's and your text
 - Maybe: port to tool to ncurses to make a more interactive interface?
 - Add multiple undo's possible.
+- Catch errors such as internet issues and API key errors.
 
 # Links:
 
