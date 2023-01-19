@@ -2,6 +2,7 @@ import os
 import sys
 import openai
 import socket
+import colorama
 from colorama import Fore, Style
 
 SAVES_DIRECTORY = '~/.local/share/gpt-tool/saves/'
@@ -20,7 +21,13 @@ def internet(host="8.8.8.8", port=53, timeout=3):
     except socket.error:
         return False
 
+def clearLines(lineCount):
+    columns = os.get_terminal_size().columns
+    for _ in range(0, lineCount):
+        print('\033[A' + ' ' * columns, end = '\r')
+
 def main():
+    colorama.init()
     openai.api_key = os.getenv('OPENAI_API_KEY')
 
     if openai.api_key == '':
@@ -53,9 +60,13 @@ def main():
                     previously provided file, or last loaded file for later use;
                     whichever came last.
 
+;l                  Lists the available chat files to load.
+
 ;L <filename>       Loads the given file to the chat. WARNING: This will override the current chat!
 
-;l                  Lists the available chat files to load.
+;c                  Clears the terminal window to save some sanity.
+
+;C                  Clears the chat (the stored text, not the terminal).
                   ''', Fore.LIGHTBLUE_EX)
 
         elif (line == ';u'):
@@ -80,6 +91,7 @@ def main():
                     err('Error: There was a problem either with your internet connection, or with your API key.\nMake sure the OPENAI_API_KEY enviornment variable is set to your OpenAI API key, and that you have a secure internet connection')
                     return
                 result = request.choices[0].text
+                chat += result
                 out(result, Fore.LIGHTGREEN_EX)
             else:
                 err('It seems that you do not have an internet connection.\nTry reconnecting to the internet and re-sending the message')
@@ -116,11 +128,17 @@ def main():
             for file in os.listdir(SAVES_DIRECTORY):
                 out(file.removesuffix('.chat'), Fore.LIGHTBLUE_EX)
 
+        elif line == ';c':
+            clearLines(os.get_terminal_size().lines - 1)
+
+        elif line == ';C':
+            chat = ''
+            out('Chat was cleared.', Fore.LIGHTBLUE_EX)
+
         else:
             message += line + '\n'
 
         line = input()
-    print(Style.RESET_ALL)
 
 if __name__ == '__main__':
     main()
