@@ -13,7 +13,8 @@ To use, you must have an internet connection, and you must have an OpenAI API ke
 - Make multiple undo's possible.
 - Catch errors such as internet issues and API key errors. (hopefully done)
 - Make a function to clear the chat. (Added TWO)
-- Make config file available
+- Make config file available.
+- Add configuration options changable via command line options.
 
 # Links:
 
