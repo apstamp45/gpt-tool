@@ -27,9 +27,13 @@ def main():
         err('Error: your API key is not set.\nYou can place "OPENAI_API_KEY=your OpenAI API key here" in your .bashrc or .zshrc, then run "source ~/.bash(zsh)rc" to reload.')
         return
 
+    if not os.path.exists(SAVES_DIRECTORY):
+        os.makedirs(SAVES_DIRECTORY)
+
     chat = ''
     previousChat = ''
     message = ''
+    saveFileName = ''
 
     out('Enter text and use ;s to send to ChatGPT\nEnter ;q to quit, or ;h for help', Fore.LIGHTBLUE_EX)
     line = input()
@@ -45,9 +49,13 @@ def main():
 
 ;s                  Sends the next message.
 
-;S <filename>       Saves the current chat to given file for later use.
+;S [filename]       Saves the current chat to either provided file,
+                    previously provided file, or last loaded file for later use;
+                    whichever came last.
 
 ;l <filename>       Loads the given file to the chat. WARNING: This will override the current chat!
+
+;L                  Lists the available chat files to load.
                   ''', Fore.LIGHTBLUE_EX)
 
         elif (line == ';u'):
@@ -73,24 +81,25 @@ def main():
                     return
                 result = request.choices[0].text
                 out(result, Fore.LIGHTGREEN_EX)
-                chat += result
             else:
                 err('It seems that you do not have an internet connection.\nTry reconnecting to the internet and re-sending the message')
 
         elif len(splitLine) > 0 and splitLine[0] == ';S':
-            if not os.path.exists(SAVES_DIRECTORY):
-                os.makedirs(SAVES_DIRECTORY)
-            if len(splitLine) < 2:
+            if len(splitLine) < 2 and saveFileName == '':
                 err('Error: you must provide a filename to save the chat')
-            else:
+            elif saveFileName == '':
                 saveFile = open(SAVES_DIRECTORY + '{}.chat'.format(splitLine[1]), 'w')
                 saveFile.write(chat)
                 saveFile.close()
+                saveFileName = splitLine[1]
                 out('File successfully saved to {}.chat'.format(SAVES_DIRECTORY + splitLine[1]), Fore.LIGHTBLUE_EX)
+            else:
+                saveFile = open(SAVES_DIRECTORY + '{}.chat'.format(saveFileName), 'w')
+                saveFile.write(chat)
+                saveFile.close()
+                out('File successfully saved to {}.chat'.format(SAVES_DIRECTORY + saveFileName), Fore.LIGHTBLUE_EX)
 
         elif len(splitLine) > 0 and splitLine[0] == ';l':
-            if not os.path.exists(SAVES_DIRECTORY):
-                os.makedirs(SAVES_DIRECTORY)
             if len(splitLine) < 2:
                 err('Error: you must provide a filename to save the chat')
             elif not os.path.exists(SAVES_DIRECTORY + '{}.chat'.format(splitLine[1])):
@@ -99,7 +108,13 @@ def main():
                 loadFile = open(SAVES_DIRECTORY + '{}.chat'.format(splitLine[1]), 'r')
                 chat = loadFile.read()
                 loadFile.close()
+                saveFileName = splitLine[1]
                 out('File successfully loaded from {}.chat'.format(SAVES_DIRECTORY + splitLine[1]), Fore.LIGHTBLUE_EX)
+
+        elif line == ';L':
+            out('Here is a list of available load files:', Fore.LIGHTBLUE_EX)
+            for file in os.listdir(SAVES_DIRECTORY):
+                out(file.removesuffix('.chat'), Fore.LIGHTBLUE_EX)
 
         else:
             message += line + '\n'
