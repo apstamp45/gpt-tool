@@ -53,9 +53,9 @@ def main():
                     previously provided file, or last loaded file for later use;
                     whichever came last.
 
-;l <filename>       Loads the given file to the chat. WARNING: This will override the current chat!
+;L <filename>       Loads the given file to the chat. WARNING: This will override the current chat!
 
-;L                  Lists the available chat files to load.
+;l                  Lists the available chat files to load.
                   ''', Fore.LIGHTBLUE_EX)
 
         elif (line == ';u'):
@@ -99,7 +99,7 @@ def main():
                 saveFile.close()
                 out('File successfully saved to {}.chat'.format(SAVES_DIRECTORY + saveFileName), Fore.LIGHTBLUE_EX)
 
-        elif len(splitLine) > 0 and splitLine[0] == ';l':
+        elif len(splitLine) > 0 and splitLine[0] == ';L':
             if len(splitLine) < 2:
                 err('Error: you must provide a filename to save the chat')
             elif not os.path.exists(SAVES_DIRECTORY + '{}.chat'.format(splitLine[1])):
@@ -111,7 +111,7 @@ def main():
                 saveFileName = splitLine[1]
                 out('File successfully loaded from {}.chat'.format(SAVES_DIRECTORY + splitLine[1]), Fore.LIGHTBLUE_EX)
 
-        elif line == ';L':
+        elif line == ';l':
             out('Here is a list of available load files:', Fore.LIGHTBLUE_EX)
             for file in os.listdir(SAVES_DIRECTORY):
                 out(file.removesuffix('.chat'), Fore.LIGHTBLUE_EX)
