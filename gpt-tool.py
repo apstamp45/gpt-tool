@@ -8,7 +8,7 @@ from argparse import RawTextHelpFormatter
 import colorama
 from colorama import Fore, Style
 
-SAVES_DIRECTORY = '~/.local/share/gpt-tool/saves/'
+SAVES_DIRECTORY = os.path.expanduser('~/.local/share/gpt-tool/saves/')
 COMMANDS_HELP = '''
 commands:
   ;h                    Displays this help message.
