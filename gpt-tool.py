@@ -1,27 +1,32 @@
 import os
 import sys
 import math
-import openai
 import socket
+import openai
+# import configparser
 import argparse
 from argparse import RawTextHelpFormatter
 import colorama
 from colorama import Fore, Style
 
 SAVES_DIRECTORY = os.path.expanduser('~/.local/share/gpt-tool/saves/')
+CONFIG_FILE = os.path.expanduser('~/.local/share/gpt-tool/gpt_tool.conf')
+
+DEFAULT_EDITOR = '/usr/bin/vim'
+
 COMMANDS_HELP = '''
 commands:
   ;h                    Displays this help message.
   ;q                    Exits the program.
-  ;u                    Removes the previous result and your previous message.
-  ;s                    Sends the next message.
-  ;S [filename]         Saves the current chat to either provided file,
-                        previously provided file, or last loaded file for later use;
+  ;;                    Sends the next message.
+  ;s [filename]         Saves the current chat to either provided file,
+                        previously provided file, or last loaded file;
                         whichever came last.
-  ;l                    Lists the available chat files to load.
-  ;L <filename>         Loads the given file to the chat. WARNING: This will override the current chat!
-  ;c                    Clears the terminal window to save some sanity.
-  ;C                    Clears the chat (the stored text, not the terminal).
+  ;S                    Lists the available chat files to load.
+  ;s <filename>         Loads the given file to the chat. WARNING: This will override the current chat!
+  ;x                    Clears the terminal window to save some sanity.
+  ;X                    Clears the chat (the stored text, not the terminal).
+  ;z                    Removes the previous result and your previous message.
 '''
 
 def out(message: str, color: str):
@@ -46,13 +51,14 @@ def save_chat_file(chat_file: str, chat: str):
 
 def load_chat_file(chat_file: str) -> str:
     if not os.path.exists(SAVES_DIRECTORY + '{}.chat'.format(chat_file)):
-        err('Error: save file does not exist: {}.chat'.format(SAVES_DIRECTORY + chat_file));
+        out('Chat file does not exist: {}.chat'.format(SAVES_DIRECTORY + chat_file), Fore.YELLOW);
         return ''
     else:
         file = open(SAVES_DIRECTORY + '{}.chat'.format(chat_file), 'r')
         chat = file.read()
         file.close()
-        out('File successfully loaded from {}.chat'.format(SAVES_DIRECTORY + chat_file), Fore.LIGHTBLUE_EX)
+        out('File successfully loaded from {}.chat'
+            .format(SAVES_DIRECTORY + chat_file), Fore.LIGHTBLUE_EX)
         return chat
 
 def clear_lines(line_count: int):
@@ -64,16 +70,29 @@ def clear_lines(line_count: int):
 def get_complete_chat(chat_load: str, chat_history: list[str]) -> str:
     return chat_load + '\n'.join(chat_history)
 
+def edit_file(file_path: str):
+    editor = DEFAULT_EDITOR
+    if os.getenv('EDITOR') != '':
+        editor = os.getenv('EDITOR')
+    else:
+        out("EDITOR environment variable is not set. using {} as default."
+            .format(DEFAULT_EDITOR), Fore.YELLOW)
+    os.system('{} {}'.format(editor, file_path))
 
 def main():
     parser = argparse.ArgumentParser(
-            prog = 'gpt-tool',
-            description = 'A command line tool for using OpenAI\'s ChatGPT.',
+           prog = 'gpt-tool',
+            description = 'A command line tool for using OpenAI\'s ChatGPT.\n' +
+            'https://github.com/apstamp45/gpt-tool/',
             epilog = COMMANDS_HELP,
             formatter_class=RawTextHelpFormatter
             )
-    parser.add_argument('-L', '--load', type = str, metavar = 'file',
+    parser.add_argument('-l', '--load-chat', type = str, metavar = 'file',
                         help = 'Loads given chat file if present')
+    # parser.add_argument('-F', '--config-file', type = str, metavar = 'config-file',
+                        # help = 'Loads given config file')
+    parser.add_argument('-L', '--edit-chat', type = str, metavar = 'chat-file',
+                        help = 'Edits the given chat file in default text editor then quits')
     colorama.init()
     openai.api_key = os.getenv('OPENAI_API_KEY')
 
@@ -94,19 +113,24 @@ def main():
     message = ''
 
     args = parser.parse_args()
-    if args.load is not None:
-        chat_load = load_chat_file(args.load)
+    if args.load_chat is not None:
+        chat_load = load_chat_file(args.load_chat)
         if chat_load != '':
-            save_file_name = args.load
+            save_file_name = args.load_chat
 
-    out('Enter text and use ;s to send to ChatGPT\nEnter ;h to show list of commands', Fore.LIGHTBLUE_EX)
+    if args.edit_chat is not None:
+        edit_file(SAVES_DIRECTORY + args.edit_chat + '.chat')
+        return
+
+    out('Enter text and use ;; to send to ChatGPT\n' +
+        'Enter ;h to show list of commands', Fore.LIGHTBLUE_EX)
     line = input()
     while (line != ';q'):
         split_line = line.split()
         if (line == ';h'):
             out(COMMANDS_HELP, Fore.LIGHTBLUE_EX)
 
-        elif (line == ';u'):
+        elif (line == ';z'):
             if message != '':
                 clear_lines(message.count('\n') + 1)
                 message = ''
@@ -125,9 +149,9 @@ def main():
                 lines_to_clear += math.floor(len(separator) / columns) + 1
                 clear_lines(lines_to_clear + 1)
             else:
-                err('Error: undo limit reached.')
+                out('Undo limit reached.', Fore.YELLOW)
 
-        elif line == ';s':
+        elif line == ';;':
             clear_lines(1)
             if internet():
                 chat += message.strip() + '\n'
@@ -143,34 +167,36 @@ def main():
                         frequency_penalty = 0,
                         presence_penalty = 0
                     )
+                    result = request.choices[0].text
+                    chat += result.strip() + '\n'
+                    chat_history.append(result.strip())
+                    out(result.strip(), Fore.LIGHTGREEN_EX)
                 except openai.error.APIConnectionError:
                     err('Error: There was a problem either with your internet connection, ' +
                         'or with your API key.\nMake sure the OPENAI_API_KEY enviornment ' +
                         'variable is set to your OpenAI API key, and that you have a secure ' +
                         'internet connection')
                     return
-                except openai.error.ServiceUnavailableError:
-                    err('Something went wron with the OpenAI server. Perhaps they are overloaded?')
-                result = request.choices[0].text
-                chat += result.strip() + '\n'
-                chat_history.append(result.strip())
-                out(result.strip(), Fore.LIGHTGREEN_EX)
+                except (openai.error.ServiceUnavailableError, openai.error.RateLimitError):
+                    out('WARNING: Something went wrong with the OpenAI server.' +
+                        'Perhaps they are overloaded?', Fore.YELLOW)
             else:
-                err('It seems that you do not have an internet connection.\n' +
-                    'Try reconnecting to the internet and re-sending the message')
+                out('It seems that you do not have an internet connection.\n' +
+                    'Try reconnecting to the internet and re-sending the message',
+                    Fore.YELLOW)
 
-        elif len(split_line) > 0 and split_line[0] == ';S':
+        elif len(split_line) > 0 and split_line[0] == ';s':
             if len(split_line) < 2 and save_file_name == '':
-                err('Error: you must provide a filename to save the chat')
+                out('You must provide a filename to save the chat', Fore.YELLOW)
             elif save_file_name == '':
                 save_chat_file(split_line[1], chat)
                 save_file_name = split_line[1]
             else:
                 save_chat_file(save_file_name, chat)
 
-        elif len(split_line) > 0 and split_line[0] == ';L':
+        elif len(split_line) > 0 and split_line[0] == ';l':
             if len(split_line) < 2:
-                err('Error: you must provide a load file name')
+                out('You must provide a load file name to load', Fore.YELLOW)
             else:
                 temp = load_chat_file(split_line[1])
                 if temp != '':
@@ -178,15 +204,15 @@ def main():
                     chat = get_complete_chat(chat_load, chat_history)
                     save_file_name = split_line[1]
 
-        elif line == ';l':
+        elif line == ';S':
             out('Here is a list of available load file names:', Fore.LIGHTBLUE_EX)
             for file in os.listdir(SAVES_DIRECTORY):
                 out(file.removesuffix('.chat'), Fore.LIGHTBLUE_EX)
 
-        elif line == ';c':
+        elif line == ';x':
             clear_lines(os.get_terminal_size().lines - 1)
 
-        elif line == ';C':
+        elif line == ';X':
             chat = ''
             out('Chat was cleared.', Fore.LIGHTBLUE_EX)
 
