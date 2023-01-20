@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 import openai
 import socket
 import argparse
@@ -54,10 +55,15 @@ def load_chat_file(chat_file: str) -> str:
         out('File successfully loaded from {}.chat'.format(SAVES_DIRECTORY + chat_file), Fore.LIGHTBLUE_EX)
         return chat
 
-def clear_lines(lineCount):
+def clear_lines(line_count: int):
     columns = os.get_terminal_size().columns
-    for _ in range(0, lineCount):
+    print('\r' + ' ' * columns, end = '\r')
+    for _ in range(0, line_count):
         print('\033[A' + ' ' * columns, end = '\r')
+
+def get_complete_chat(chat_load: str, chat_history: list[str]) -> str:
+    return chat_load + '\n'.join(chat_history)
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -79,15 +85,18 @@ def main():
     if not os.path.exists(SAVES_DIRECTORY):
         os.makedirs(SAVES_DIRECTORY)
 
-    chat = ''
-    previous_chat = ''
-    message = ''
     save_file_name = ''
+
+    chat = ''
+    chat_load = ''
+    chat_history = []
+
+    message = ''
 
     args = parser.parse_args()
     if args.load is not None:
-        chat = load_chat_file(args.load)
-        if chat != '':
+        chat_load = load_chat_file(args.load)
+        if chat_load != '':
             save_file_name = args.load
 
     out('Enter text and use ;s to send to ChatGPT\nEnter ;h to show list of commands', Fore.LIGHTBLUE_EX)
@@ -98,13 +107,28 @@ def main():
             out(COMMANDS_HELP, Fore.LIGHTBLUE_EX)
 
         elif (line == ';u'):
-            chat = previous_chat
+            if (len(chat_history) > 0):
+                removed_item = chat_history.pop()
+                chat = get_complete_chat(chat_load, chat_history)
+                lines_to_clear = 0
+                separator = ''
+                columns = os.get_terminal_size().columns
+                for char in removed_item:
+                    if char == '\n':
+                        lines_to_clear += math.floor(len(separator) / columns) + 1
+                        separator = ''
+                    else:
+                        separator += char
+                lines_to_clear += math.floor(len(separator) / columns) + 1
+                clear_lines(lines_to_clear + 1)
+            else:
+                err('Error: undo limit reached.')
 
         elif line == ';s':
             clear_lines(1)
             if internet():
-                previous_chat = chat
-                chat += message
+                chat += message.strip() + '\n'
+                chat_history.append(message.strip())
                 message = ""
                 try:
                     request = openai.Completion.create(
@@ -125,8 +149,9 @@ def main():
                 except openai.error.ServiceUnavailableError:
                     err('Something went wron with the OpenAI server. Perhaps they are overloaded?')
                 result = request.choices[0].text
-                chat += result + '\n\n'
-                out(result, Fore.LIGHTGREEN_EX)
+                chat += result.strip() + '\n'
+                chat_history.append(result.strip())
+                out(result.strip(), Fore.LIGHTGREEN_EX)
             else:
                 err('It seems that you do not have an internet connection.\n' +
                     'Try reconnecting to the internet and re-sending the message')
@@ -146,7 +171,8 @@ def main():
             else:
                 temp = load_chat_file(split_line[1])
                 if temp != '':
-                    chat = temp
+                    chat_load = temp
+                    chat = get_complete_chat(chat_load, chat_history)
                     save_file_name = split_line[1]
 
         elif line == ';l':

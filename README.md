@@ -10,7 +10,7 @@ To use, you must have an internet connection, and you must have an OpenAI API ke
 
 - Add method to save chats to file (DONE?)
 - If possible, colorize text to differentiate ChatGPT's and your text (DONE)
-- Make multiple undo's possible.
+- Make multiple undo's possible. (Perfectly flawless! I hope.)
 - Catch errors such as internet issues and API key errors. (hopefully done)
 - Make a function to clear the chat. (Added TWO)
 - Make config file available.
