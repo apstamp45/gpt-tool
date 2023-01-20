@@ -107,7 +107,10 @@ def main():
             out(COMMANDS_HELP, Fore.LIGHTBLUE_EX)
 
         elif (line == ';u'):
-            if (len(chat_history) > 0):
+            if message != '':
+                clear_lines(message.count('\n') + 1)
+                message = ''
+            elif (len(chat_history) > 0):
                 removed_item = chat_history.pop()
                 chat = get_complete_chat(chat_load, chat_history)
                 lines_to_clear = 0
