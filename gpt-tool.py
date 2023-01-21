@@ -23,7 +23,9 @@ commands:
                         previously provided file, or last loaded file;
                         whichever came last.
   ;S                    Lists the available chat files to load.
-  ;s <filename>         Loads the given file to the chat. WARNING: This will override the current chat!
+  ;l <filename>         Loads the given file to the chat. WARNING: This will override the current chat!
+  ;L                    Saves the current chat, opens the file in text editor, then reloads the file.
+                        The chat must already have been loaded previously.
   ;x                    Clears the terminal window to save some sanity.
   ;X                    Clears the chat (the stored text, not the terminal).
   ;z                    Removes the previous result and your previous message.
@@ -191,8 +193,10 @@ def main():
             elif save_file_name == '':
                 save_chat_file(split_line[1], chat)
                 save_file_name = split_line[1]
+                chat_history = []
             else:
                 save_chat_file(save_file_name, chat)
+                chat_history = []
 
         elif len(split_line) > 0 and split_line[0] == ';l':
             if len(split_line) < 2:
@@ -203,6 +207,17 @@ def main():
                     chat_load = temp
                     chat = get_complete_chat(chat_load, chat_history)
                     save_file_name = split_line[1]
+                    chat_history = []
+
+        elif line == ';L':
+            if save_file_name == '':
+                out("Cannot open chat file: none was loaded.", Fore.YELLOW)
+            else:
+                save_chat_file(save_file_name, chat)
+                chat_history = []
+                edit_file(SAVES_DIRECTORY + save_file_name + '.chat')
+                chat = get_complete_chat(load_chat_file(SAVES_DIRECTORY + save_file_name + '.chat'),
+                                         chat_history)
 
         elif line == ';S':
             out('Here is a list of available load file names:', Fore.LIGHTBLUE_EX)
