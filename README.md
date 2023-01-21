@@ -1,20 +1,18 @@
 # GPT Tool
 
-This tool, written in Python, is used to communicate with OpenAI's ChatGPT through the command line/terminal.
+This tool, written in Python, is used to communicate with OpenAI's ChatGPT model through the command line/terminal.
 
 # How to use
 
-To use, you must have an internet connection, and you must have an OpenAI API key. Set the environment variable <code>OPENAI_API_KEY</code> to your OpenAI API key. The program will need to use this to get a response from ChatGPT. Then to run the program, simply run <code>python main.py</code> from this directory.
+To get this program to work, you must first install the <code>openai</code> Python module, then you must set the <code>OPENAI_API_KEY</code> enviorment variable to your personal API key (on Linux, you can put <code>OPENAI_API_KEY=insert_api_key_here</code> in your .bashrc/.zshrc file then reload the terminal). You can obtain this through OpenAI's website.
+To use the program, you must have an internet connection then run the program by running <code>python main.py</code> from this directory.
 
 # TODO
 
-- Add method to save chats to file (DONE?)
-- If possible, colorize text to differentiate ChatGPT's and your text (DONE)
-- Make multiple undo's possible. (Perfectly flawless! I hope.)
 - Catch errors such as internet issues and API key errors. (hopefully done)
-- Make a function to clear the chat. (Added TWO)
 - Make config file available.
-- Add configuration options changable via command line options.
+- Add a redo function
+- Add support for Windows users
 
 # Links:
 
